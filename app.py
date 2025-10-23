@@ -10,8 +10,9 @@ import sys
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as rest
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
+import secrets
 
 # Load environment variables
 load_dotenv()
@@ -21,9 +22,26 @@ QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION")
 
+# API Key for authentication
+API_KEY = os.getenv("DOCUMENT_API_KEY")
+
 # Create Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+def require_api_key(f):
+    """Decorator to require API key for protected endpoints"""
+    def decorated_function(*args, **kwargs):
+        # Skip API key check for health endpoint
+        if request.endpoint == 'health_check':
+            return f(*args, **kwargs)
+        
+        key = request.headers.get('X-API-Key') or request.args.get('api_key')
+        if not key or key != API_KEY:
+            abort(401, description="Unauthorized: Invalid or missing API key")
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
 
 def get_documents_by_company():
     """
@@ -63,10 +81,11 @@ def get_documents_by_company():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint - no authentication required"""
     return jsonify({"status": "healthy", "service": "document-api"}), 200
 
 @app.route('/documents', methods=['GET'])
+@require_api_key
 def get_documents():
     """Get all documents grouped by company"""
     try:
@@ -76,6 +95,7 @@ def get_documents():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/documents/<company_name>', methods=['GET'])
+@require_api_key
 def get_documents_by_company_name(company_name):
     """Get documents for a specific company"""
     try:
@@ -88,6 +108,7 @@ def get_documents_by_company_name(company_name):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/', methods=['GET'])
+@require_api_key
 def home():
     """Home endpoint with API information"""
     return jsonify({

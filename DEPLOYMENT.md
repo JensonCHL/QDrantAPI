@@ -16,6 +16,7 @@
 2. **Configure environment variables**:
    - Ensure your `.env` file is properly configured with Qdrant credentials
    - The file should already contain the necessary configuration
+   - Make sure to set a secure `DOCUMENT_API_KEY` value
 
 ## Deployment Options
 
@@ -99,12 +100,47 @@ Use the provided `document-api.service` file:
    sudo systemctl start document-api
    ```
 
+## API Authentication
+
+The API now requires authentication for all endpoints except the health check endpoint (`/health`).
+
+To access the API, you must include your API key in one of two ways:
+
+1. **HTTP Header** (Recommended):
+   ```
+   X-API-Key: sk_docapi_X7JmK9P2Qr8vL4nW3yA1zB5cE6fH0gT
+   ```
+
+2. **Query Parameter**:
+   ```
+   GET /documents?api_key=sk_docapi_X7JmK9P2Qr8vL4nW3yA1zB5cE6fH0gT
+   ```
+
+### Example API Calls:
+
+Using curl with header:
+```bash
+curl -H "X-API-Key: sk_docapi_X7JmK9P2Qr8vL4nW3yA1zB5cE6fH0gT" \
+  http://[YOUR_VM_IP]:5000/documents
+```
+
+Using curl with query parameter:
+```bash
+curl "http://[YOUR_VM_IP]:5000/documents?api_key=sk_docapi_X7JmK9P2Qr8vL4nW3yA1zB5cE6fH0gT"
+```
+
+### Health Check Endpoint:
+The `/health` endpoint does not require authentication:
+```bash
+curl http://[YOUR_VM_IP]:5000/health
+```
+
 ## API Endpoints
 
-1. `GET /` - Home page with API information
-2. `GET /health` - Health check endpoint
-3. `GET /documents` - Get all documents grouped by company
-4. `GET /documents/<company_name>` - Get documents for a specific company
+1. `GET /` - Home page with API information (requires authentication)
+2. `GET /health` - Health check endpoint (no authentication required)
+3. `GET /documents` - Get all documents grouped by company (requires authentication)
+4. `GET /documents/<company_name>` - Get documents for a specific company (requires authentication)
 
 ## Access from n8n
 
@@ -116,6 +152,11 @@ http://[YOUR_VM_IP]:5000/documents
 For example, if your VM IP is 192.168.1.100:
 ```
 http://192.168.1.100:5000/documents
+```
+
+Remember to include your API key in the request headers:
+```
+X-API-Key: sk_docapi_X7JmK9P2Qr8vL4nW3yA1zB5cE6fH0gT
 ```
 
 ### For Docker Deployment in Same Network:
