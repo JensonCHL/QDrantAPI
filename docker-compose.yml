@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  document-api:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5000
+    volumes:
+      - .:/app
+    networks:
+      - document-network
+    command: python app.py
+
+networks:
+  document-network:
+    driver: bridge

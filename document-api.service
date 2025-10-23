@@ -1,0 +1,17 @@
+# Document API Service Configuration
+
+[Unit]
+Description=Document API Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/home/ubuntu/document-api
+Environment=PATH=/home/ubuntu/document-api/venv/bin
+ExecStart=/home/ubuntu/document-api/venv/bin/python app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
