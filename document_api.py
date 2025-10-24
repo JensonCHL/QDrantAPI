@@ -22,7 +22,7 @@ QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION")
 def get_documents_by_company():
     """
     Retrieve all documents from Qdrant and group by company
-    Returns a dictionary with company as key and list of sources as values
+    Returns a list of dictionaries with company name and document sources
     """
     # Connect to Qdrant
     client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
@@ -50,15 +50,24 @@ def get_documents_by_company():
         if source not in company_documents[company]:
             company_documents[company].append(source)
     
-    return company_documents
+    # Convert to the new simplified format
+    result = []
+    for company, sources in company_documents.items():
+        company_data = {
+            "Company Name": company,
+            "Contract Title": ", ".join(sources)  # Join all sources with comma and space
+        }
+        result.append(company_data)
+    
+    return result
 
 def main():
     """Main function to output document information"""
     try:
         documents = get_documents_by_company()
         
-        # Output as JSON
-        print(json.dumps(documents, indent=2))
+        # Output as JSON with the new format
+        print(json.dumps({"response": documents}, indent=2))
         
     except Exception as e:
         print(f"Error retrieving documents: {e}", file=sys.stderr)

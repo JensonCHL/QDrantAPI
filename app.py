@@ -14,8 +14,8 @@ from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 import secrets
 
-# Load environment variables
-load_dotenv()
+# Load environment variables explicitly from .env file
+load_dotenv('.env')
 
 # Qdrant Configuration from .env
 QDRANT_URL = os.getenv("QDRANT_URL")
@@ -24,6 +24,11 @@ QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION")
 
 # API Key for authentication
 API_KEY = os.getenv("DOCUMENT_API_KEY")
+
+# Debug: Print API key status
+print(f"API Key loaded: {'Yes' if API_KEY else 'No'}")
+if API_KEY:
+    print(f"API Key: {API_KEY[:5]}...{API_KEY[-5:]}")  # Show first 5 and last 5 chars
 
 # Create Flask app
 app = Flask(__name__)
@@ -36,9 +41,19 @@ def require_api_key(f):
         if request.endpoint == 'health_check':
             return f(*args, **kwargs)
         
+        # Debug information
+        print(f"Request endpoint: {request.endpoint}")
+        print(f"API_KEY from env: {'Set' if API_KEY else 'Not set'}")
+        
         key = request.headers.get('X-API-Key') or request.args.get('api_key')
+        print(f"Provided key: {'Present' if key else 'Missing'}")
+        if key:
+            print(f"Key comparison: {key == API_KEY}")
+        
         if not key or key != API_KEY:
+            print("Authentication failed - aborting")
             abort(401, description="Unauthorized: Invalid or missing API key")
+        print("Authentication successful")
         return f(*args, **kwargs)
     decorated_function.__name__ = f.__name__
     return decorated_function
@@ -46,7 +61,7 @@ def require_api_key(f):
 def get_documents_by_company():
     """
     Retrieve all documents from Qdrant and group by company
-    Returns a dictionary with company as key and list of sources as values
+    Returns a list of dictionaries with company name and document sources
     """
     try:
         # Connect to Qdrant
@@ -75,7 +90,16 @@ def get_documents_by_company():
             if source not in company_documents[company]:
                 company_documents[company].append(source)
         
-        return company_documents
+        # Convert to the new simplified format
+        result = []
+        for company, sources in company_documents.items():
+            company_data = {
+                "Company Name": company,
+                "Contract Title": ", ".join(sources)  # Join all sources with comma and space
+            }
+            result.append(company_data)
+        
+        return result
     except Exception as e:
         raise Exception(f"Error retrieving documents: {e}")
 
@@ -90,7 +114,7 @@ def get_documents():
     """Get all documents grouped by company"""
     try:
         documents = get_documents_by_company()
-        return jsonify(documents), 200
+        return jsonify({"response": documents}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -100,8 +124,10 @@ def get_documents_by_company_name(company_name):
     """Get documents for a specific company"""
     try:
         documents = get_documents_by_company()
-        if company_name in documents:
-            return jsonify({company_name: documents[company_name]}), 200
+        # Find the specific company in the list
+        company_data = [item for item in documents if item.get("Company Name") == company_name]
+        if company_data:
+            return jsonify({"response": company_data}), 200
         else:
             return jsonify({"error": f"No documents found for company: {company_name}"}), 404
     except Exception as e:
