@@ -114,7 +114,7 @@ def get_documents():
     """Get all documents grouped by company"""
     try:
         documents = get_documents_by_company()
-        return jsonify({"response": documents}), 200
+        return jsonify(documents), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -127,7 +127,7 @@ def get_documents_by_company_name(company_name):
         # Find the specific company in the list
         company_data = [item for item in documents if item.get("Company Name") == company_name]
         if company_data:
-            return jsonify({"response": company_data}), 200
+            return jsonify(company_data), 200
         else:
             return jsonify({"error": f"No documents found for company: {company_name}"}), 404
     except Exception as e:

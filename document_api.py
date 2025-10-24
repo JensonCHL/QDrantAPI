@@ -66,8 +66,8 @@ def main():
     try:
         documents = get_documents_by_company()
         
-        # Output as JSON with the new format
-        print(json.dumps({"response": documents}, indent=2))
+        # Output as JSON without the wrapper
+        print(json.dumps(documents, indent=2))
         
     except Exception as e:
         print(f"Error retrieving documents: {e}", file=sys.stderr)
